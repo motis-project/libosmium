@@ -600,7 +600,7 @@ namespace osmium {
                     }
                 }
 
-                void end_element(const XML_Char* element) {
+                void end_element(const XML_Char*) {
                     assert(!m_context_stack.empty());
                     switch (m_context_stack.back()) {
                         case context::osm:
