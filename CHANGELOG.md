@@ -13,6 +13,52 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 
+## [2.14.2] - 2018-07-23
+
+### Fixed
+
+* PBF reader and writer depended on byte order of system architecture.
+* Removed an unreliable test that didn't work on some architectures.
+
+
+## [2.14.1] - 2018-07-23
+
+### Changed
+
+* Libosmium now needs the newest Protozero version 1.6.3.
+* Removes dependency on the utfcpp library for conversions between Unicode
+  code points and UTF-8. We have our own functions for this now. This also
+  gives us more control on where errors are thrown in this code.
+* Add support for using the CRC32 implementation from the zlib library in
+  addition to the one from Boost. It is significantly faster and means we
+  have one less dependency, because zlib is needed anyway in almost all
+  programs using Osmium due to its use in the PBF format. Set macro
+  `OSMIUM_TEST_CRC_USE_BOOST` before compiling the tests, if you want to
+  run the tests with the boost library code, otherwise it will use the
+  zlib code. Note that to use this you have to change your software slightly,
+  see the documentation of the `CRC_zlib` class for details.
+* Add a `clear_user()` function to OSMObject and Changeset which allows
+  removing the user name of an entity without re-creating it in a new buffer.
+* In Osmium the 0 value of the Timestamp is used to denote the "invalid"
+  Timestamp, and its output using the `to_iso()` function is the empty
+  string. But this is the wrong output for OSM XML files, where a
+  timestamp that's not set should still be output as
+  1970-01-01T00:00:00Z. This version introduces a new `to_is_all()`
+  function which will do this and uses that function in the XML writer.
+* Use `protozero::byteswap_inplace` instead of `htonl`/`ntohl`. Makes the
+  code simpler and also works on Windows.
+* Marked `MultipolygonCollector` class as deprecated. Use the
+  `MultipolygonManager` class introduced in 2.13.0 instead.
+* Lots of code cleanups especially around `assert`s. Libosmium checks out
+  clean with `clang-tidy` now. Some documentation updates.
+
+### Fixed
+
+* Fix compilation error when `fileno()` is a macro (as in OpenBSD 6.3).
+* Make `Box` output consistent with the output of a single `Location`
+  and avoids problems with some locales.
+
+
 ## [2.14.0] - 2018-03-31
 
 ### Added
@@ -823,7 +869,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   Doxygen (up to version 1.8.8). This version contains a workaround to fix
   this.
 
-[unreleased]: https://github.com/osmcode/libosmium/compare/v2.14.0...HEAD
+[unreleased]: https://github.com/osmcode/libosmium/compare/v2.14.2...HEAD
+[2.14.2]: https://github.com/osmcode/libosmium/compare/v2.14.1...v2.14.2
+[2.14.1]: https://github.com/osmcode/libosmium/compare/v2.14.0...v2.14.1
 [2.14.0]: https://github.com/osmcode/libosmium/compare/v2.13.1...v2.14.0
 [2.13.1]: https://github.com/osmcode/libosmium/compare/v2.13.0...v2.13.1
 [2.13.0]: https://github.com/osmcode/libosmium/compare/v2.12.2...v2.13.0
