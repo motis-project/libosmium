@@ -49,14 +49,14 @@ namespace osmium {
 
         static const char* bar(std::size_t len = full_length) noexcept {
             assert(len <= full_length);
-            return "======================================================================"
-                   + full_length - len;
+            auto const bar = "======================================================================";
+            return bar + full_length - len;
         }
 
         static const char* spc(std::size_t len = full_length) noexcept {
             assert(len >= 1 && len <= full_length);
-            return "                                                                     "
-                   + full_length - len;
+            auto const bar = "                                                                     ";
+            return bar + full_length - len;
         }
 
         // The max size is the file size if there is a single file and the
