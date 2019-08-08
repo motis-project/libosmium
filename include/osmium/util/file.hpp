@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -138,6 +138,7 @@ namespace osmium {
         inline std::size_t file_size(const char* name) {
 #ifdef _MSC_VER
             // Windows implementation
+            osmium::detail::disable_invalid_parameter_handler diph;
             // https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx
             struct _stat64 s{};
             if (::_stati64(name, &s) != 0) {

@@ -13,6 +13,55 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 
+## [2.15.1] - 2019-02-26
+
+### Added
+
+* More tests.
+* CMake config: also find clang-tidy-7.
+
+### Changed
+
+* Example and benchmark programs now don't crash with exceptions any more
+  but report them properly.
+
+### Fixed
+
+* Compile with NDEBUG in RelWithDebInfo mode.
+* Correctly throw exception in `multimap::dump_as_list()`.
+* Integer truncation on 32 bit systems in `MemoryUsage`.
+* Exception specification on some functions.
+* Forwarding references that might have hidden copy/move constructors.
+
+
+## [2.15.0] - 2018-12-07
+
+### Added
+
+* Function `dump_as_array()` to dump sparse array indexes.
+* Set the `xml_josm_upload` header option when reading XML files.
+* New function `OSMObject::remove_tags()` marks tags on OSM objects as
+  removed.
+* More tests.
+
+### Changed
+
+* When reading OSM files Libosmium now has less memory overhead, especially
+  when reading PBF files. This works by using more, but smaller buffers.
+* The `TagsFilter` class is now based on the `TagsFilterBase` template
+  class which allows setting the result type. This allows the filter to
+  return more data depending on the rule that matched.
+* Use enums for many constants instead of (static) const(expr) variables.
+* Make `chunk_bits` in `IdSetDense` configurable.
+* Hardcode `%lld` format instead of using `<cinttypes>` PRI macro.
+* Update included gdalcpp to version 1.2.0.
+
+### Fixed
+
+* The gzip/bzip2 compression code was overhauled and is better tested now.
+  This fixes some bugs on Windows.
+
+
 ## [2.14.2] - 2018-07-23
 
 ### Fixed
@@ -869,7 +918,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   Doxygen (up to version 1.8.8). This version contains a workaround to fix
   this.
 
-[unreleased]: https://github.com/osmcode/libosmium/compare/v2.14.2...HEAD
+[unreleased]: https://github.com/osmcode/libosmium/compare/v2.15.1...HEAD
+[2.15.1]: https://github.com/osmcode/libosmium/compare/v2.15.0...v2.15.1
+[2.15.0]: https://github.com/osmcode/libosmium/compare/v2.14.2...v2.15.0
 [2.14.2]: https://github.com/osmcode/libosmium/compare/v2.14.1...v2.14.2
 [2.14.1]: https://github.com/osmcode/libosmium/compare/v2.14.0...v2.14.1
 [2.14.0]: https://github.com/osmcode/libosmium/compare/v2.13.1...v2.14.0

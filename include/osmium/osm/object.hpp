@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -304,11 +304,16 @@ namespace osmium {
          *
          * @param timestamp Timestamp in ISO format.
          * @returns Reference to object to make calls chainable.
+         * @throws std::invalid_argment if the timestamp isn't a correctly ISO
+         *                              formatted string with the Z timezone.
+         *
+         * @pre @code timestamp != nullptr @endcode
          */
         OSMObject& set_timestamp(const char* timestamp) {
+            assert(timestamp);
             m_timestamp = detail::parse_timestamp(timestamp);
             if (timestamp[20] != '\0') {
-                throw std::invalid_argument{"can not parse timestamp"};
+                throw std::invalid_argument{"can not parse timestamp: garbage after timestamp"};
             }
             return *this;
         }
@@ -365,6 +370,20 @@ namespace osmium {
 
         using iterator       = osmium::memory::CollectionIterator<Item>;
         using const_iterator = osmium::memory::CollectionIterator<const Item>;
+
+        /**
+         * Remove all tags from this object.
+         *
+         * (This will not change the size of the object, the tags are simply
+         * marked as removed.)
+         */
+        void remove_tags() noexcept {
+            for (auto& subitem : *this) {
+                if (subitem.type() == osmium::item_type::tag_list) {
+                    subitem.set_removed(true);
+                }
+            }
+        }
 
         iterator begin() {
             return iterator(subitems_position());

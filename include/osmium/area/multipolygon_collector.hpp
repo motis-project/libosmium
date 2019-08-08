@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -85,8 +85,13 @@ namespace osmium {
 
             area_stats m_stats;
 
-            static constexpr size_t initial_output_buffer_size = 1024 * 1024;
-            static constexpr size_t max_buffer_size_for_flush = 100 * 1024;
+            enum {
+                initial_output_buffer_size = 1024ul * 1024ul
+            };
+
+            enum {
+                max_buffer_size_for_flush = 100ul * 1024ul
+            };
 
             void flush_output_buffer() {
                 if (this->callback()) {

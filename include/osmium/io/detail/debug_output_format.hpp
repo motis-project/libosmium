@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -60,7 +60,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/util/minmax.hpp>
 #include <osmium/visitor.hpp>
 
-#include <cinttypes>
 #include <cmath>
 #include <cstring>
 #include <iterator>
@@ -198,7 +197,12 @@ namespace osmium {
 
                 void write_counter(int width, int n) {
                     write_color(color_white);
+#pragma GCC diagnostic push
+#if !defined(__clang__) && defined(__GNUC__) && (__GNUC__ > 7)
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
                     output_formatted("    %0*d: ", width, n++);
+#pragma GCC diagnostic pop
                     write_color(color_reset);
                 }
 
@@ -392,7 +396,7 @@ namespace osmium {
                     for (const auto& node_ref : way.nodes()) {
                         write_diff();
                         write_counter(width, n++);
-                        output_formatted("%10" PRId64, node_ref.ref());
+                        output_formatted("%10lld", static_cast<long long>(node_ref.ref())); // NOLINT(google-runtime-int)
                         if (node_ref.location().valid()) {
                             *m_out += " (";
                             node_ref.location().as_string(std::back_inserter(*m_out));
@@ -428,7 +432,7 @@ namespace osmium {
                         write_diff();
                         write_counter(width, n++);
                         *m_out += short_typename[item_type_to_nwr_index(member.type())];
-                        output_formatted(" %10" PRId64 " ", member.ref());
+                        output_formatted(" %10lld ", static_cast<long long>(member.ref())); // NOLINT(google-runtime-int)
                         write_string(member.role());
                         *m_out += '\n';
                     }

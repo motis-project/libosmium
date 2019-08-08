@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -158,6 +158,12 @@ namespace osmium {
                 m_crs_user(epsg) {
             }
 
+            /**
+             * Do coordinate transformation.
+             *
+             * @pre Location must be in valid range (depends on projection
+             *      used).
+             */
             Coordinates operator()(osmium::Location location) const {
                 if (m_epsg == 4326) {
                     return Coordinates{location.lon(), location.lat()};

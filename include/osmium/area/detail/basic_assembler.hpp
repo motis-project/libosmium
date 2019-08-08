@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -103,9 +103,13 @@ namespace osmium {
              */
             class BasicAssembler {
 
+                static constexpr const std::size_t max_split_locations = 100ull;
+
                 struct slocation {
 
-                    static constexpr const uint32_t invalid_item = 1u << 30u;
+                    enum {
+                        invalid_item = 1u << 30u
+                    };
 
                     uint32_t item : 31;
                     uint32_t reverse : 1;
@@ -1077,6 +1081,15 @@ namespace osmium {
                         timer_simple_case.start();
                         create_rings_simple_case();
                         timer_simple_case.stop();
+                    } else if (m_split_locations.size() > max_split_locations) {
+                        if (debug()) {
+                            std::cerr << "  Ignoring polygon with "
+                                      << m_split_locations.size()
+                                      << " split locations (>"
+                                      << max_split_locations
+                                      << ")\n";
+                        }
+                        return false;
                     } else {
                         if (debug()) {
                             std::cerr << "  Found split locations -> using complex algorithm\n";

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -45,7 +45,9 @@ namespace osmium {
      */
     class ProgressBar {
 
-        static constexpr const std::size_t full_length = 70;
+        enum {
+            full_length = 70
+        };
 
         static const char* bar(std::size_t len = full_length) noexcept {
             assert(len <= full_length);

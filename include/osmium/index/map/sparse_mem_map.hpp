@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -62,7 +62,9 @@ namespace osmium {
                 // element in the map (id + value + pointers to left, right,
                 // and parent plus some overhead for color of red-black-tree
                 // or similar).
-                static constexpr size_t element_size = sizeof(TId) + sizeof(TValue) + sizeof(void*) * 4;
+                enum {
+                    element_size = sizeof(TId) + sizeof(TValue) + sizeof(void*) * 4u
+                };
 
                 std::map<TId, TValue> m_elements;
 
