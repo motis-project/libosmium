@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -147,15 +147,15 @@ namespace osmium {
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif
                     if (m_file) {
-                        FILE* file = m_file;
+                        FILE* wrapped_file = m_file;
                         m_file = nullptr;
 
                         // Do not close stdout
-                        if (fileno(file) == 1) {
+                        if (fileno(wrapped_file) == 1) {
                             return;
                         }
 
-                        if (fclose(file) != 0) {
+                        if (fclose(wrapped_file) != 0) {
                             throw std::system_error{errno, std::system_category(), "fclose failed"};
                         }
                     }
@@ -165,8 +165,9 @@ namespace osmium {
 
         } // namespace detail
 
-        class Bzip2Compressor : public Compressor {
+        class Bzip2Compressor final : public Compressor {
 
+            std::size_t m_file_size = 0;
             detail::file_wrapper m_file;
             BZFILE* m_bzfile = nullptr;
 
@@ -191,7 +192,7 @@ namespace osmium {
             Bzip2Compressor(Bzip2Compressor&&) = delete;
             Bzip2Compressor& operator=(Bzip2Compressor&&) = delete;
 
-            ~Bzip2Compressor() noexcept final {
+            ~Bzip2Compressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -199,7 +200,7 @@ namespace osmium {
                 }
             }
 
-            void write(const std::string& data) final {
+            void write(const std::string& data) override {
                 assert(data.size() < std::numeric_limits<int>::max());
                 assert(m_bzfile);
 #ifdef _MSC_VER
@@ -212,13 +213,15 @@ namespace osmium {
                 }
             }
 
-            void close() final {
+            void close() override {
                 if (m_bzfile) {
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif
                     int bzerror = BZ_OK;
-                    ::BZ2_bzWriteClose(&bzerror, m_bzfile, 0, nullptr, nullptr);
+                    unsigned int nbytes_out_lo32 = 0;
+                    unsigned int nbytes_out_hi32 = 0;
+                    ::BZ2_bzWriteClose64(&bzerror, m_bzfile, 0, nullptr, nullptr, &nbytes_out_lo32, &nbytes_out_hi32);
                     m_bzfile = nullptr;
                     if (do_fsync() && m_file.file()) {
                         osmium::io::detail::reliable_fsync(fileno(m_file.file()));
@@ -227,12 +230,17 @@ namespace osmium {
                     if (bzerror != BZ_OK) {
                         throw bzip2_error{"bzip2 error: write close failed", bzerror};
                     }
+                    m_file_size = static_cast<std::size_t>(static_cast<uint64_t>(nbytes_out_hi32) << 32U | nbytes_out_lo32);
                 }
+            }
+
+            std::size_t file_size() const override {
+                return m_file_size;
             }
 
         }; // class Bzip2Compressor
 
-        class Bzip2Decompressor : public Decompressor {
+        class Bzip2Decompressor final : public Decompressor {
 
             detail::file_wrapper m_file;
             BZFILE* m_bzfile = nullptr;
@@ -258,7 +266,7 @@ namespace osmium {
             Bzip2Decompressor(Bzip2Decompressor&&) = delete;
             Bzip2Decompressor& operator=(Bzip2Decompressor&&) = delete;
 
-            ~Bzip2Decompressor() noexcept final {
+            ~Bzip2Decompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -266,7 +274,11 @@ namespace osmium {
                 }
             }
 
-            std::string read() final {
+            std::string read() override {
+                const auto offset = ftell(m_file.file());
+                if (offset > 0) {
+                    osmium::io::detail::remove_buffered_pages(fileno(m_file.file()), static_cast<std::size_t>(offset));
+                }
 #ifdef _MSC_VER
                 osmium::detail::disable_invalid_parameter_handler diph;
 #endif
@@ -282,8 +294,8 @@ namespace osmium {
                         detail::throw_bzip2_error(m_bzfile, "read failed", bzerror);
                     }
                     if (bzerror == BZ_STREAM_END) {
-                        void* unused;
-                        int nunused;
+                        void* unused = nullptr;
+                        int nunused = 0;
                         if (!feof(m_file.file())) {
                             ::BZ2_bzReadGetUnused(&bzerror, m_bzfile, &unused, &nunused);
                             if (bzerror != BZ_OK) {
@@ -311,8 +323,9 @@ namespace osmium {
                 return buffer;
             }
 
-            void close() final {
+            void close() override {
                 if (m_bzfile) {
+                    osmium::io::detail::remove_buffered_pages(fileno(m_file.file()));
 #ifdef _MSC_VER
                     osmium::detail::disable_invalid_parameter_handler diph;
 #endif
@@ -328,7 +341,7 @@ namespace osmium {
 
         }; // class Bzip2Decompressor
 
-        class Bzip2BufferDecompressor : public Decompressor {
+        class Bzip2BufferDecompressor final : public Decompressor {
 
             const char* m_buffer;
             std::size_t m_buffer_size;
@@ -355,7 +368,7 @@ namespace osmium {
             Bzip2BufferDecompressor(Bzip2BufferDecompressor&&) = delete;
             Bzip2BufferDecompressor& operator=(Bzip2BufferDecompressor&&) = delete;
 
-            ~Bzip2BufferDecompressor() noexcept final {
+            ~Bzip2BufferDecompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -363,7 +376,7 @@ namespace osmium {
                 }
             }
 
-            std::string read() final {
+            std::string read() override {
                 std::string output;
 
                 if (m_buffer) {
@@ -388,7 +401,7 @@ namespace osmium {
                 return output;
             }
 
-            void close() final {
+            void close() override {
                 BZ2_bzDecompressEnd(&m_bzstream);
             }
 

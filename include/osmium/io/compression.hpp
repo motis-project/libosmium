@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -81,6 +81,10 @@ namespace osmium {
             virtual void write(const std::string& data) = 0;
 
             virtual void close() = 0;
+
+            virtual std::size_t file_size() const {
+                return 0;
+            }
 
         }; // class Compressor
 
@@ -216,8 +220,9 @@ namespace osmium {
 
         }; // class CompressionFactory
 
-        class NoCompressor : public Compressor {
+        class NoCompressor final : public Compressor {
 
+            std::size_t m_file_size = 0;
             int m_fd;
 
         public:
@@ -233,7 +238,7 @@ namespace osmium {
             NoCompressor(NoCompressor&&) = delete;
             NoCompressor& operator=(NoCompressor&&) = delete;
 
-            ~NoCompressor() noexcept final {
+            ~NoCompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -241,11 +246,12 @@ namespace osmium {
                 }
             }
 
-            void write(const std::string& data) final {
+            void write(const std::string& data) override {
                 osmium::io::detail::reliable_write(m_fd, data.data(), data.size());
+                m_file_size += data.size();
             }
 
-            void close() final {
+            void close() override {
                 if (m_fd >= 0) {
                     const int fd = m_fd;
                     m_fd = -1;
@@ -262,9 +268,13 @@ namespace osmium {
                 }
             }
 
+            std::size_t file_size() const override {
+                return m_file_size;
+            }
+
         }; // class NoCompressor
 
-        class NoDecompressor : public Decompressor {
+        class NoDecompressor final : public Decompressor {
 
             int m_fd = -1;
             const char* m_buffer = nullptr;
@@ -288,7 +298,7 @@ namespace osmium {
             NoDecompressor(NoDecompressor&&) = delete;
             NoDecompressor& operator=(NoDecompressor&&) = delete;
 
-            ~NoDecompressor() noexcept final {
+            ~NoDecompressor() noexcept override {
                 try {
                     close();
                 } catch (...) {
@@ -296,7 +306,7 @@ namespace osmium {
                 }
             }
 
-            std::string read() final {
+            std::string read() override {
                 std::string buffer;
 
                 if (m_buffer) {
@@ -307,6 +317,7 @@ namespace osmium {
                     }
                 } else {
                     buffer.resize(osmium::io::Decompressor::input_buffer_size);
+                    osmium::io::detail::remove_buffered_pages(m_fd, m_offset);
                     const auto nread = detail::reliable_read(m_fd, &*buffer.begin(), osmium::io::Decompressor::input_buffer_size);
                     buffer.resize(std::string::size_type(nread));
                 }
@@ -317,8 +328,9 @@ namespace osmium {
                 return buffer;
             }
 
-            void close() final {
+            void close() override {
                 if (m_fd >= 0) {
+                    osmium::io::detail::remove_buffered_pages(m_fd);
                     const int fd = m_fd;
                     m_fd = -1;
                     osmium::io::detail::reliable_close(fd);

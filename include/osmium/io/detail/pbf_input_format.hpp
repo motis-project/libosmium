@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -62,7 +62,7 @@ namespace osmium {
 
         namespace detail {
 
-            class PBFParser : public Parser {
+            class PBFParser final : public Parser {
 
                 std::string m_input_buffer{};
 
@@ -96,7 +96,7 @@ namespace osmium {
                  * the length of the following BlobHeader.
                  */
                 uint32_t read_blob_header_size_from_file() {
-                    uint32_t size;
+                    uint32_t size = 0;
 
                     try {
                         // size is encoded in network byte order
@@ -203,9 +203,9 @@ namespace osmium {
                 PBFParser(PBFParser&&) = delete;
                 PBFParser& operator=(PBFParser&&) = delete;
 
-                ~PBFParser() noexcept final = default;
+                ~PBFParser() noexcept override = default;
 
-                void run() final {
+                void run() override {
                     osmium::thread::set_thread_name("_osmium_pbf_in");
 
                     parse_header_blob();

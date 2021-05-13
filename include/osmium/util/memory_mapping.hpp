@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -44,6 +44,7 @@ DEALINGS IN THE SOFTWARE.
 
 #ifndef _WIN32
 # include <sys/mman.h>
+# include <sys/statvfs.h>
 #else
 # include <fcntl.h>
 # include <io.h>
@@ -150,14 +151,35 @@ namespace osmium {
             void* map_view_of_file() const noexcept;
 #endif
 
-            int resize_fd(int fd) {
+            // Get the available space on the file system where the file
+            // behind fd is on. Return 0 if it can't be determined.
+            static std::size_t available_space(int fd) {
+#ifdef _WIN32
+                return 0;
+#else
+                struct statvfs stat;
+                const int result = ::fstatvfs(fd, &stat);
+                if (result != 0) {
+                    return 0;
+                }
+                return stat.f_bsize * stat.f_bavail;
+#endif
+            }
+
+            int resize_fd(int fd) const {
                 // Anonymous mapping doesn't need resizing.
                 if (fd == -1) {
                     return -1;
                 }
 
                 // Make sure the file backing this mapping is large enough.
-                if (osmium::file_size(fd) < m_size + m_offset) {
+                auto const current_file_size = osmium::file_size(fd);
+                if (current_file_size < m_size + m_offset) {
+                    const auto available = available_space(fd);
+                    if (available > 0 && current_file_size + available <= m_size) {
+                        throw std::system_error{ENOSPC, std::system_category(), "Could not resize file: Not enough space on filesystem"};
+                    }
+
                     osmium::resize_file(fd, m_size + m_offset);
                 }
                 return fd;
@@ -188,6 +210,7 @@ namespace osmium {
              * For backwards compatibility only. Use the constructor taking
              * a mapping_mode as second argument instead.
              */
+            // cppcheck-suppress noExplicitConstructor
             OSMIUM_DEPRECATED MemoryMapping(std::size_t size, bool writable = true, int fd = -1, off_t offset = 0) : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
                 MemoryMapping(size, writable ? mapping_mode::write_shared : mapping_mode::readonly, fd, offset)  {
             }
@@ -759,7 +782,12 @@ inline osmium::util::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcep
 }
 
 inline osmium::util::MemoryMapping& osmium::util::MemoryMapping::operator=(osmium::util::MemoryMapping&& other) noexcept {
-    unmap();
+    try {
+        unmap();
+    } catch (const std::system_error&) {
+        // Ignore unmap error. It should never happen anyway and we can't do
+        // anything about it here.
+    }
     m_size         = other.m_size;
     m_offset       = other.m_offset;
     m_fd           = other.m_fd;

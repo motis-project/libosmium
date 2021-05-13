@@ -12,6 +12,138 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+
+## [2.17.0] - 2021-04-26
+
+### Added
+
+* Add "ids" output format. New IDS output format that is similar to
+  the OPL format, but only the entity type and id is written out.
+* Add convenience functions `left()`, `right()`, `top()`, `bottom()` to
+  access `osmium::Box` boundaries.
+* Add polygon output to WKB factory.
+* Add functions to access storage from `node_locations_for_ways`
+  handler.
+* Add flag `osmium::io::buffers_type` for telling the `Reader` class whether
+  you want buffers read to only contain a single type of OSM entity.
+* Add convenient named `nodes()`, `ways()`, and `relations()` accessor
+  functions to `nwr_array` class.
+* Add `DeltaDecode::value()` accessor function.
+* Add variant of the `Buffer::purge_removed()` function which doesn't take
+  a callback parameter.
+
+### Changed
+
+* Different varint decoding for faster PBF decoding. This makes PBF
+  decoding about 15% faster.
+* Several code optimmizations in (PBF) writer code that speed up
+  writing of OSM files considerably while using less CPU and spreading
+  the load on multiple CPUs.
+* Use memset/memcpy instead of `std::fill_n` and `std::copy` in object
+  builder for some slight speedups.
+* Ignore metadata setting on reader for history/change files. History
+  and change files must be read with metadata, because otherwise the
+  information is lost whether an object is visible or deleted. So
+  ignore this setting in that case.
+* On Linux: Use fadvise() to tell kernel about our reading patterns:
+  1. Tell kernel that we are reading OSM files sequentially. This
+     should improve pre-fetching of data blocks.
+  2. Tell kernel that we are done with block so they can be released.
+     This means we don't hog the buffer cache for something that
+     will, in all likelyhood, not be needed any more.
+* Use assert() instead of exception in "can not happen" situation in
+  the relations manager code.
+* Various code cleanups.
+
+### Fixed
+
+* Test failure with `add_tag_list` on some systems.
+* Test framework fix for aarch64 architecture.
+* Remove undefined behaviour in bzip2 compression code.
+* Rename some local variables to not shadow member functions.
+* Wrap `osmium::util::MemoryMapping::unmap()` in try/catch on Windows
+  also because we call this from a noexcept function.
+* Removed superfluous `std::forward`s and fixed code that called
+  `std::forward` multiple times on the same object.
+* Fix in OPL parser which could lead to invalid data being generated.
+* Fixed three bugs in O5M parser which could lead to an infinit loop
+  or segmentation faults.
+
+## [2.16.0] - 2021-01-08
+
+### Added
+
+* The PBF reader and writer now understand PBF blobs compressed with the LZ4
+  compression algorithm in addition to the usual ZLIB compression (or no
+  compression at all). LZ4 is much faster to compress and uncompress. Use
+  by setting the `pbf_compression` output file format option to `lz4`. You
+  have to define `OSMIUM_WITH_LZ4` to enable this before including any
+  libosmium includes.
+* The function `osmium::io::supported_pbf_compression_types` can now be used
+  to get a list of all PBF compression types supported.
+* The output file option `pbf_compression_level` can now be set to an integer.
+  The range depends on the compression type used, 0-9 for zlib compression
+  and 1-65537 for lz4 compression.
+* Adds `ptr_begin()`/`ptr_end()` functions to `ObjectPointerCollection` for
+  accessing the pointers instead of the underlying objects.
+
+### Changed
+
+* The `osmium::io::Writer::close()` function now returns the number of bytes
+  written to an OSM file if it is available (and 0 otherwise).
+* Use stable sort when sorting `ObjectPointerCollection`.
+
+### Fixed
+
+* Various small fixes and cleanups.
+
+
+## [2.15.6] - 2020-06-27
+
+### Added
+
+* Add `IdSetSmall::merge_sorted` function.
+
+### Changed
+
+* Little optimization for IdSetSmall: Don't add the same id twice in a row.
+
+### Fixed
+
+* Do not build areas with "recursion depth > 20". This happens when there
+  are complex multipolygon with many rings touching in single points. This
+  is a quick fix that hopefully keeps us going until we find a better
+  solution.
+
+## [2.15.5] - 2020-04-21
+
+### Added
+
+* Additional constructor for `builder::attr::member_type(_string)` taking
+  char type making it even easier to generate test data.
+* Allow single C string or `std::string` as argument for `builder::attr::_tag`.
+  Must contain key and value separated by the equal sign.
+* New `builder::attr::_t()` function to set tags from comma-separated string.
+* New `nwr_array` iterator.
+* Support for the PROJ library has now been declared deprecated. The old
+  PROJ API (up to version PROJ 6) is currently still available, but will
+  be removed in a future version. Support for the new PROJ API will not be
+  in libosmium. See https://github.com/osmcode/osmium-proj for some code
+  that might help you if you need this.
+
+### Changed
+
+* Check how much space is available in file system before resizing memory
+  mapped file (not on Windows). This means we can, at least in some cases,
+  show an error message instead of crashing the program.
+
+### Fixed
+
+* Parsing coordinates in PBF files did not work correctly if an lat/lon
+  offset was specified (which almost never happens).
+* Make OPL parser more strict: Attributes can only be specified once.
+* Do not close stdout after writing OSM file to it.
+
 ## [2.15.4] - 2019-11-28
 
 ### Added
@@ -985,7 +1117,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   Doxygen (up to version 1.8.8). This version contains a workaround to fix
   this.
 
-[unreleased]: https://github.com/osmcode/libosmium/compare/v2.15.4...HEAD
+[unreleased]: https://github.com/osmcode/libosmium/compare/v2.17.0...HEAD
+[2.17.0]: https://github.com/osmcode/libosmium/compare/v2.16.0...v2.17.0
+[2.16.0]: https://github.com/osmcode/libosmium/compare/v2.15.6...v2.16.0
+[2.15.6]: https://github.com/osmcode/libosmium/compare/v2.15.5...v2.15.6
+[2.15.5]: https://github.com/osmcode/libosmium/compare/v2.15.4...v2.15.5
 [2.15.4]: https://github.com/osmcode/libosmium/compare/v2.15.3...v2.15.4
 [2.15.3]: https://github.com/osmcode/libosmium/compare/v2.15.2...v2.15.3
 [2.15.2]: https://github.com/osmcode/libosmium/compare/v2.15.1...v2.15.2

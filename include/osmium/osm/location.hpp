@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -403,7 +403,7 @@ namespace osmium {
         /**
          * Get longitude without checking the validity.
          */
-        double lon_without_check() const {
+        double lon_without_check() const noexcept {
             return fix_to_double(m_x);
         }
 
@@ -422,7 +422,7 @@ namespace osmium {
         /**
          * Get latitude without checking the validity.
          */
-        double lat_without_check() const {
+        double lat_without_check() const noexcept {
             return fix_to_double(m_y);
         }
 

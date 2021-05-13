@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -174,6 +174,46 @@ namespace osmium {
          */
         Location& top_right() noexcept {
             return m_top_right;
+        }
+
+        /**
+         * Get left boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double left() const noexcept {
+            assert(valid());
+            return m_bottom_left.lon_without_check();
+        }
+
+        /**
+         * Get right boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double right() const noexcept {
+            assert(valid());
+            return m_top_right.lon_without_check();
+        }
+
+        /**
+         * Get top boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double top() const noexcept {
+            assert(valid());
+            return m_top_right.lat_without_check();
+        }
+
+        /**
+         * Get bottom boundary.
+         *
+         * @pre @code valid() == true @encode
+         */
+        double bottom() const noexcept {
+            assert(valid());
+            return m_bottom_left.lat_without_check();
         }
 
         /**

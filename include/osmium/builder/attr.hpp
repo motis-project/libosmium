@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -227,8 +227,8 @@ namespace osmium {
             OSMIUM_ATTRIBUTE(node_handler, _location, osmium::Location)
                 constexpr explicit _location(const osmium::Location& value) noexcept :
                     type_wrapper(value) {}
-                explicit _location(double lat, double lon) :
-                    type_wrapper(osmium::Location{lat, lon}) {}
+                explicit _location(double lon, double lat) :
+                    type_wrapper(osmium::Location{lon, lat}) {}
             };
 
             OSMIUM_ATTRIBUTE(entity_handler, _user, const char*)
@@ -253,6 +253,10 @@ namespace osmium {
                     m_type(type),
                     m_ref(ref),
                     m_role(role) {
+                }
+
+                member_type(char type, osmium::object_id_type ref, const char* role = "") noexcept :
+                    member_type(osmium::char_to_item_type(type), ref, role) {
                 }
 
                 constexpr osmium::item_type type() const noexcept {
@@ -281,6 +285,10 @@ namespace osmium {
                     m_type(type),
                     m_ref(ref),
                     m_role(std::move(role)) {
+                }
+
+                member_type_string(char type, osmium::object_id_type ref, std::string&& role) noexcept :
+                    member_type_string(osmium::char_to_item_type(type), ref, std::forward<std::string>(role)) {
                 }
 
                 osmium::item_type type() const noexcept {
@@ -674,7 +682,7 @@ namespace osmium {
                         return;
                     }
                     const char* key = tag.value.first;
-                    auto const equal_sign = std::strchr(key, '=');
+                    const char* const equal_sign = std::strchr(key, '=');
                     if (!equal_sign) {
                         builder.add_tag(key, "");
                         return;

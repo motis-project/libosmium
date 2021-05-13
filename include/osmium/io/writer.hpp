@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -113,9 +113,14 @@ namespace osmium {
 
             size_t m_buffer_size = default_buffer_size;
 
-            std::future<bool> m_write_future{};
+            std::future<std::size_t> m_write_future{};
 
             osmium::thread::thread_handler m_thread{};
+
+            // Checking the m_write_future is much more expensive then checking
+            // one atomic bool, so we set this bool in the write_thread when
+            // the writer should check the future...
+            std::atomic_bool m_notification{false};
 
             enum class status {
                 okay   = 0, // normal writing
@@ -126,10 +131,12 @@ namespace osmium {
             // This function will run in a separate thread.
             static void write_thread(detail::future_string_queue_type& output_queue,
                                      std::unique_ptr<osmium::io::Compressor>&& compressor,
-                                     std::promise<bool>&& write_promise) {
+                                     std::promise<std::size_t>&& write_promise,
+                                     std::atomic_bool* notification) {
                 detail::WriteThread write_thread{output_queue,
                                                  std::move(compressor),
-                                                 std::move(write_promise)};
+                                                 std::move(write_promise),
+                                                 notification};
                 write_thread();
             }
 
@@ -140,7 +147,9 @@ namespace osmium {
             }
 
             void do_flush() {
-                osmium::thread::check_for_exception(m_write_future);
+                if (m_notification) {
+                    osmium::thread::check_for_exception(m_write_future);
+                }
                 if (m_buffer && m_buffer.committed() > 0) {
                     osmium::memory::Buffer buffer{m_buffer_size,
                                                   osmium::memory::Buffer::auto_grow::no};
@@ -223,6 +232,13 @@ namespace osmium {
              *       before closing it? Can be osmium::io::fsync::yes or
              *       osmium::io::fsync::no (default).
              *
+             * * osmium::thread::Pool&: Reference to a thread pool that should
+             *      be used for writing instead of the default pool. Usually
+             *      it is okay to use the statically initialized shared
+             *      default pool, but sometimes you want or need your own.
+             *      For instance when your program will fork, using the
+             *      statically initialized pool will not work.
+             *
              * @throws osmium::io_error If there was an error.
              * @throws std::system_error If the file could not be opened.
              */
@@ -251,9 +267,9 @@ namespace osmium {
                                                                      osmium::io::detail::open_for_writing(m_file.filename(), options.allow_overwrite),
                                                                      options.sync);
 
-                std::promise<bool> write_promise;
+                std::promise<std::size_t> write_promise;
                 m_write_future = write_promise.get_future();
-                m_thread = osmium::thread::thread_handler{write_thread, std::ref(m_output_queue), std::move(compressor), std::move(write_promise)};
+                m_thread = osmium::thread::thread_handler{write_thread, std::ref(m_output_queue), std::move(compressor), std::move(write_promise), &m_notification};
 
                 ensure_cleanup([&](){
                     m_output->write_header(options.header);
@@ -356,14 +372,18 @@ namespace osmium {
              * the destructor will ignore, it is better to call close()
              * explicitly.
              *
+             * @returns Number of bytes written to the file (or 0 if it can
+             *          not be determined).
              * @throws Some form of osmium::io_error when there is a problem.
              */
-            void close() {
+            std::size_t close() {
                 do_close();
 
                 if (m_write_future.valid()) {
-                    m_write_future.get();
+                    return m_write_future.get();
                 }
+
+                return 0;
             }
 
         }; // class Writer

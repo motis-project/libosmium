@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -55,6 +55,16 @@ namespace osmium {
 
         namespace detail {
 
+            constexpr inline int zlib_default_compression_level() noexcept {
+                return Z_DEFAULT_COMPRESSION;
+            }
+
+            inline void zlib_check_compression_level(int value) {
+                if (value < 0 || value > 9) {
+                    throw std::invalid_argument{"The 'pbf_compression_level' for zlib compression must be between 0 and 9."};
+                }
+            }
+
             /**
              * Compress data using zlib.
              *
@@ -62,19 +72,21 @@ namespace osmium {
              * what fits in an unsigned long, on Windows this is usually 32bit.
              *
              * @param input Data to compress.
+             * @param compression_level Compression level.
              * @returns Compressed data.
              */
-            inline std::string zlib_compress(const std::string& input) {
+            inline std::string zlib_compress(const std::string& input, int compression_level = Z_DEFAULT_COMPRESSION) {
                 assert(input.size() < std::numeric_limits<unsigned long>::max());
                 unsigned long output_size = ::compressBound(static_cast<unsigned long>(input.size())); // NOLINT(google-runtime-int)
 
                 std::string output(output_size, '\0');
 
-                const auto result = ::compress(
+                const auto result = ::compress2(
                     reinterpret_cast<unsigned char*>(&*output.begin()),
                     &output_size,
                     reinterpret_cast<const unsigned char*>(input.data()),
-                    static_cast<unsigned long>(input.size()) // NOLINT(google-runtime-int)
+                    static_cast<unsigned long>(input.size()), // NOLINT(google-runtime-int)
+                    compression_level
                 );
 
                 if (result != Z_OK) {

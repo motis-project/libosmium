@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -93,7 +93,7 @@ namespace osmium {
                 return data.empty();
             }
 
-            inline bool at_end_of_data(osmium::memory::Buffer& buffer) noexcept {
+            inline bool at_end_of_data(const osmium::memory::Buffer& buffer) noexcept {
                 return !buffer;
             }
 
@@ -140,7 +140,7 @@ namespace osmium {
                         std::future<T> data_future;
                         m_queue.wait_and_pop(data_future);
                         assert(data_future.valid());
-                        data = std::move(data_future.get());
+                        data = data_future.get();
                         if (at_end_of_data(data)) {
                             m_has_reached_end_of_data = true;
                         }

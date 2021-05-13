@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -126,6 +126,10 @@ namespace osmium {
                 // without having an overflow.
                 m_value = static_cast<TValue>(
                               static_cast<TDelta>(m_value) + delta);
+                return m_value;
+            }
+
+            TValue value() const noexcept {
                 return m_value;
             }
 

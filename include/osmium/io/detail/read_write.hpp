@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2021 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -245,6 +245,39 @@ namespace osmium {
                     throw std::system_error{errno, std::system_category(), "Dup failed"};
                 }
                 return fd2;
+            }
+
+            /**
+             * Tell the kernel to remove all pages from this file from the
+             * buffer cache. Used when reading a large file that will not be
+             * needed again soon. Keeps the buffer cache clear for other
+             * things.
+             */
+#ifdef __linux__
+            inline void remove_buffered_pages(int fd) noexcept {
+                if (fd > 0) {
+                    ::posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+                }
+#else
+            inline void remove_buffered_pages(int /*fd*/) noexcept {
+#endif
+            }
+
+            /**
+             * Tell the kernel to remove all pages from this file up to the
+             * specified size from the buffer cache. Used when reading a large
+             * file that will not be needed again soon. Keeps the buffer cache
+             * clear for other things.
+             */
+#ifdef __linux__
+            inline void remove_buffered_pages(int fd, std::size_t size) noexcept {
+                constexpr const std::size_t block_size = 4096;
+                if (fd > 0 && size > 0) {
+                    ::posix_fadvise(fd, 0, (size - 1) & ~(block_size - 1), POSIX_FADV_DONTNEED);
+                }
+#else
+            inline void remove_buffered_pages(int /*fd*/, std::size_t /*size*/) noexcept {
+#endif
             }
 
         } // namespace detail
